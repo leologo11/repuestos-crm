@@ -9,15 +9,20 @@ export default function Config() {
   const [qrDataURL, setQrDataURL] = useState(null);
   const [timeout, setTimeout_]    = useState(10);
 
-  useEffect(() => {
+  const refreshStatus = () => {
     getBotStatus()
-      .then(({ status, qrDataURL: qr }) => { setBotStatus(status); if (qr) setQrDataURL(qr); })
+      .then(({ status, qrDataURL: qr }) => { setBotStatus(status); setQrDataURL(qr || null); })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshStatus();
+    const interval = setInterval(refreshStatus, 8000);
 
     socket.on('bot:qr',    ({ qrDataURL: qr }) => { setBotStatus('qr_pending'); setQrDataURL(qr); });
     socket.on('bot:status',({ status })        => { setBotStatus(status); if (status === 'connected') setQrDataURL(null); });
 
-    return () => { socket.off('bot:qr'); socket.off('bot:status'); };
+    return () => { clearInterval(interval); socket.off('bot:qr'); socket.off('bot:status'); };
   }, []);
 
   const STATUS_COLOR = { connected: 'var(--accent)', qr_pending: 'var(--amber)', disconnected: 'var(--red)' };
@@ -36,26 +41,35 @@ export default function Config() {
           </div>
         </div>
 
-        {botStatus === 'qr_pending' && qrDataURL && (
+        {qrDataURL && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '16px 0' }}>
-            <img src={qrDataURL} alt="QR WhatsApp" style={{ width: 200, height: 200, borderRadius: 8, border: '1px solid var(--border)' }} />
-            <p style={{ fontSize: 13, color: 'var(--text2)', textAlign: 'center' }}>
-              Abre WhatsApp → Dispositivos vinculados → Vincular dispositivo → escanea este QR
+            <div style={{ padding: 12, background: 'white', borderRadius: 12, border: '2px solid var(--accent)', boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
+              <img src={qrDataURL} alt="QR WhatsApp" style={{ width: 220, height: 220, display: 'block' }} />
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text2)', textAlign: 'center', lineHeight: 1.6 }}>
+              Abre <strong>WhatsApp</strong> en tu celular<br/>
+              → Dispositivos vinculados → Vincular dispositivo<br/>
+              → Escanea este QR
             </p>
           </div>
         )}
 
-        {botStatus === 'connected' && (
+        {!qrDataURL && botStatus === 'connected' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: 'var(--accent-dim)', fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>
             <Ico name="check" size={15} style={{ color: 'var(--accent)' }} />
             Bot conectado y escuchando mensajes
           </div>
         )}
 
-        {botStatus === 'disconnected' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: 'var(--red-dim)', fontSize: 13, color: 'var(--red)', fontWeight: 500 }}>
-            <Ico name="wifiOff" size={15} style={{ color: 'var(--red)' }} />
-            Bot desconectado. Reinicia el servidor para generar el QR.
+        {!qrDataURL && botStatus === 'disconnected' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: 'var(--red-dim)', fontSize: 13, color: 'var(--red)', fontWeight: 500 }}>
+              <Ico name="wifiOff" size={15} style={{ color: 'var(--red)' }} />
+              Bot desconectado — esperando QR...
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0 }}>
+              El QR aparecerá aquí automáticamente. Esta página se actualiza cada 8 segundos.
+            </p>
           </div>
         )}
       </Card>
