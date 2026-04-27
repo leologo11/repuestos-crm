@@ -9,9 +9,11 @@ const Cliente       = require('../models/Cliente');
 const { useMongoAuthState } = require('./mongoAuthState');
 const { processConversation, parseSupplierOptions } = require('./ai-agent');
 
-let botStatus     = 'disconnected';
-let lastQRDataURL = null;
-let sock          = null;
+let botStatus          = 'disconnected';
+let lastQRDataURL      = null;
+let sock               = null;
+let failCount          = 0;   // disconnects seguidos sin QR ni conexión exitosa
+let sessionOk          = false; // true después de primer QR o conexión
 
 // ── JID / phone helpers ────────────────────────────────────────
 function normalizePhone(raw) {
@@ -30,6 +32,17 @@ function buildJid(phone) {
 function phoneFromJid(jid) {
   if (!jid) return '';
   return normalizePhone(jid.split('@')[0].split(':')[0]);
+}
+
+// ── Limpia sesión MongoDB (fuerza nuevo QR) ────────────────────
+async function clearMongoSession() {
+  try {
+    const AuthState = require('../models/AuthState');
+    await AuthState.deleteMany({});
+    console.log('[BOT] 🗑️  Sesion MongoDB limpiada → se generará nuevo QR');
+  } catch (e) {
+    console.error('[BOT] Error limpiando sesión:', e.message);
+  }
 }
 
 // ── Inicialización Baileys (sesión en MongoDB, sin Chrome) ─────
@@ -65,12 +78,19 @@ async function startBot() {
       logger: pino({ level: 'silent' }),
       generateHighQualityLinkPreview: false,
       browser: ['Web-Repuestos', 'Chrome', '120.0.0'],
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
+      markOnlineOnConnect: false,
+      syncFullHistory: false,
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
+        sessionOk = true;   // QR generado = sesión en buen estado
+        failCount = 0;
         botStatus = 'qr_pending';
         console.log('\n====================================================');
         console.log('  📱 ESCANEA ESTE QR CON TU WHATSAPP');
@@ -85,6 +105,8 @@ async function startBot() {
       }
 
       if (connection === 'open') {
+        sessionOk = true;
+        failCount = 0;
         botStatus = 'connected';
         lastQRDataURL = null;
         console.log('[SERVIDOR] ✅ WhatsApp Bot conectado y listo');
@@ -94,11 +116,22 @@ async function startBot() {
       if (connection === 'close') {
         const code      = lastDisconnect?.error?.output?.statusCode;
         const loggedOut = code === DisconnectReason.loggedOut;
-        console.log('[SERVIDOR] ❌ Desconectado. Código:', code, loggedOut ? '(sesión expirada)' : '');
+        console.log('[SERVIDOR] ❌ Desconectado. Código:', code ?? 'sin código');
         botStatus = 'disconnected';
         sock = null;
         if (global.io) global.io.emit('bot:status', { status: 'disconnected' });
-        const delay = loggedOut ? 2000 : 5000;
+
+        // Si cae sin código y nunca vimos QR/conexión → sesión corrupta en MongoDB
+        if (!sessionOk) {
+          failCount++;
+          console.log(`[BOT] Fallo ${failCount}/3 sin sesión válida`);
+          if (failCount >= 3) {
+            failCount = 0;
+            await clearMongoSession();
+          }
+        }
+
+        const delay = loggedOut ? 2000 : Math.min(5000 * failCount || 5000, 30000);
         console.log(`[SERVIDOR] 🔄 Reconectando en ${delay / 1000}s...`);
         setTimeout(startBot, delay);
       }

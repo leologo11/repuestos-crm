@@ -396,6 +396,15 @@ router.get('/bot/status', (req, res) => {
   } catch (_) { res.json({ status: 'disconnected', qrDataURL: null }); }
 });
 
+router.post('/bot/reset-session', async (req, res) => {
+  try {
+    const AuthState = require('../models/AuthState');
+    await AuthState.deleteMany({});
+    console.log('[API] Sesion WhatsApp reseteada manualmente');
+    res.json({ ok: true, message: 'Sesion limpiada. El bot generará nuevo QR en segundos.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Públicas — Landing page (sin autenticación) ───────────────
 router.post('/public/quote', async (req, res) => {
   try {

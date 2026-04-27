@@ -8,11 +8,24 @@ export default function Config() {
   const [botStatus, setBotStatus] = useState('disconnected');
   const [qrDataURL, setQrDataURL] = useState(null);
   const [timeout, setTimeout_]    = useState(10);
+  const [resetting, setResetting] = useState(false);
 
   const refreshStatus = () => {
     getBotStatus()
       .then(({ status, qrDataURL: qr }) => { setBotStatus(status); setQrDataURL(qr || null); })
       .catch(() => {});
+  };
+
+  const resetSession = async () => {
+    if (!confirm('¿Resetear la sesión WhatsApp? El bot se desconectará y pedirá nuevo QR.')) return;
+    setResetting(true);
+    try {
+      await fetch('/api/bot/reset-session', { method: 'POST' });
+      setBotStatus('disconnected');
+      setQrDataURL(null);
+      setTimeout(refreshStatus, 4000);
+    } catch (_) {}
+    setResetting(false);
   };
 
   useEffect(() => {
@@ -72,6 +85,20 @@ export default function Config() {
             </p>
           </div>
         )}
+
+        {/* Botón reset sesión */}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+            ¿El QR no aparece? Resetea la sesión para forzar uno nuevo.
+          </div>
+          <button
+            onClick={resetSession}
+            disabled={resetting}
+            style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--red)', background: 'transparent', color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, opacity: resetting ? 0.5 : 1 }}
+          >
+            {resetting ? 'Reseteando...' : '🔄 Resetear sesión'}
+          </button>
+        </div>
       </Card>
 
       {/* Margen */}
