@@ -18,7 +18,18 @@ const waClient = new Client({
   authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-extensions',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-background-networking',
+      '--disable-default-apps',
+    ],
     ...(process.env.PUPPETEER_EXECUTABLE_PATH
       ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH }
       : {}),
@@ -42,9 +53,15 @@ waClient.on('ready', async () => {
   await loadLidCacheFromDB();
 });
 
-waClient.on('disconnected', () => {
+waClient.on('disconnected', (reason) => {
   botStatus = 'disconnected';
-  console.log('[SERVIDOR] ❌ WhatsApp Bot desconectado');
+  console.log('[SERVIDOR] ❌ WhatsApp Bot desconectado:', reason);
+  if (global.io) global.io.emit('bot:status', { status: 'disconnected' });
+});
+
+waClient.on('auth_failure', (msg) => {
+  botStatus = 'disconnected';
+  console.error('[SERVIDOR] 🔐 Fallo de autenticación WhatsApp:', msg);
   if (global.io) global.io.emit('bot:status', { status: 'disconnected' });
 });
 
