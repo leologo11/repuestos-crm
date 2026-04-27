@@ -1,4 +1,12 @@
 const router  = require('express').Router();
+
+function normalizePhone(raw) {
+  const d = (raw || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('56') && d.length >= 10) return d;
+  return '56' + d;
+}
+
 const Conversation = require('../models/Conversation');
 const Quote        = require('../models/Quote');
 const Proveedor    = require('../models/Proveedor');
@@ -142,14 +150,18 @@ router.get('/proveedores', async (req, res) => {
 
 router.post('/proveedores', async (req, res) => {
   try {
-    const p = await Proveedor.create(req.body);
+    const body = { ...req.body };
+    if (body.whatsapp) body.whatsapp = normalizePhone(body.whatsapp);
+    const p = await Proveedor.create(body);
     res.status(201).json(p);
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 router.patch('/proveedores/:id', async (req, res) => {
   try {
-    const p = await Proveedor.findByIdAndUpdate(req.params.id, req.body, { new: true }).lean();
+    const body = { ...req.body };
+    if (body.whatsapp !== undefined) body.whatsapp = normalizePhone(body.whatsapp);
+    const p = await Proveedor.findByIdAndUpdate(req.params.id, body, { new: true }).lean();
     if (!p) return res.status(404).json({ error: 'No encontrado' });
     res.json(p);
   } catch (err) { res.status(400).json({ error: err.message }); }

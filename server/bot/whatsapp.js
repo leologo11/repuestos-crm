@@ -12,18 +12,23 @@ let botStatus     = 'disconnected';
 let lastQRDataURL = null;
 let sock          = null;
 
-// ── JID helpers ────────────────────────────────────────────────
+// ── JID / phone helpers ────────────────────────────────────────
+function normalizePhone(raw) {
+  const d = (raw || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('56') && d.length >= 10) return d;
+  return '56' + d;
+}
+
 function buildJid(phone) {
   if (!phone) return null;
   if (phone.includes('@s.whatsapp.net')) return phone;
-  const digits = phone.replace(/\D/g, '');
-  const num = digits.startsWith('56') ? digits : '56' + digits;
-  return num + '@s.whatsapp.net';
+  return normalizePhone(phone) + '@s.whatsapp.net';
 }
 
 function phoneFromJid(jid) {
   if (!jid) return '';
-  return jid.split('@')[0].split(':')[0];
+  return normalizePhone(jid.split('@')[0].split(':')[0]);
 }
 
 // ── Inicialización Baileys (sin Chrome) ────────────────────────
@@ -131,22 +136,35 @@ async function handleIncomingMessage(msg) {
 }
 
 async function findProveedor(phone) {
-  const digits = (phone || '').replace(/\D/g, '');
-  if (digits.length < 7) return null;
-  const last9 = digits.slice(-9);
+  if (!phone) return null;
+  const norm = normalizePhone(phone);
+  if (norm.length < 8) return null;
+  const last9 = norm.slice(-9);
+
   const proveedores = await Proveedor.find({ whatsapp: { $exists: true, $ne: '' } });
-  return proveedores.find((p) =>
-    (p.whatsapp || '').replace(/\D/g, '').slice(-9) === last9
-  ) || null;
+  const found = proveedores.find((p) => {
+    const pNorm = normalizePhone(p.whatsapp || '');
+    return pNorm.slice(-9) === last9;
+  });
+
+  if (found) {
+    console.log(`[BOT] Proveedor identificado: ${found.nombre} (${norm})`);
+  } else {
+    console.log(`[BOT] Mensaje de cliente: ${norm}`);
+  }
+  return found || null;
 }
 
 // ── Cliente ────────────────────────────────────────────────────
 async function handleClientMessage(jid, phone, text, pushName) {
+  // phone is already normalized (56XXXXXXXXX) from phoneFromJid
   let conv = await Conversation.findOne({ customer_phone: phone });
   const isNew = !conv;
 
   if (!conv) {
-    const clienteExistente = await Cliente.findOne({ telefono: phone }).select('nombre').lean();
+    const clienteExistente = await Cliente.findOne({
+      telefono: { $in: [phone, phone.slice(-9), phone.replace(/^56/, '')] },
+    }).select('nombre').lean();
     const nombreCliente = clienteExistente?.nombre || pushName || phone;
 
     conv = await Conversation.create({
@@ -158,9 +176,11 @@ async function handleClientMessage(jid, phone, text, pushName) {
     });
 
     await Cliente.findOneAndUpdate(
-      { telefono: phone },
+      { telefono: { $in: [phone, phone.slice(-9)] } },
       { $setOnInsert: { nombre: nombreCliente, telefono: phone } },
       { upsert: true }
+    ).catch(() =>
+      Cliente.findOneAndUpdate({ telefono: phone }, { nombre: nombreCliente }, { upsert: true })
     );
 
     if (clienteExistente) {
