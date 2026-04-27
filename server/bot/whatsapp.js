@@ -2,10 +2,11 @@ const QRCode = require('qrcode');
 const qrcode = require('qrcode-terminal');
 const pino   = require('pino');
 
-const Conversation = require('../models/Conversation');
-const Quote        = require('../models/Quote');
-const Proveedor    = require('../models/Proveedor');
-const Cliente      = require('../models/Cliente');
+const Conversation  = require('../models/Conversation');
+const Quote         = require('../models/Quote');
+const Proveedor     = require('../models/Proveedor');
+const Cliente       = require('../models/Cliente');
+const { useMongoAuthState } = require('./mongoAuthState');
 const { processConversation, parseSupplierOptions } = require('./ai-agent');
 
 let botStatus     = 'disconnected';
@@ -31,17 +32,16 @@ function phoneFromJid(jid) {
   return normalizePhone(jid.split('@')[0].split(':')[0]);
 }
 
-// ── Inicialización Baileys (sin Chrome) ────────────────────────
+// ── Inicialización Baileys (sesión en MongoDB, sin Chrome) ─────
 async function startBot() {
   try {
     const {
       default: makeWASocket,
-      useMultiFileAuthState,
       DisconnectReason,
       fetchLatestBaileysVersion,
     } = await import('@whiskeysockets/baileys');
 
-    const { state, saveCreds } = await useMultiFileAuthState('.baileys_auth');
+    const { state, saveCreds } = await useMongoAuthState();
     let version;
     try {
       ({ version } = await fetchLatestBaileysVersion());
@@ -81,15 +81,13 @@ async function startBot() {
       if (connection === 'close') {
         const code      = lastDisconnect?.error?.output?.statusCode;
         const loggedOut = code === DisconnectReason.loggedOut;
-        console.log('[SERVIDOR] ❌ Desconectado. Código:', code);
+        console.log('[SERVIDOR] ❌ Desconectado. Código:', code, loggedOut ? '(sesión expirada)' : '');
         botStatus = 'disconnected';
+        sock = null;
         if (global.io) global.io.emit('bot:status', { status: 'disconnected' });
-        if (!loggedOut) {
-          console.log('[SERVIDOR] 🔄 Reconectando en 5s...');
-          setTimeout(startBot, 5000);
-        } else {
-          console.log('[SERVIDOR] 🚪 Sesión cerrada. Escanea el QR para reconectar.');
-        }
+        const delay = loggedOut ? 2000 : 5000;
+        console.log(`[SERVIDOR] 🔄 Reconectando en ${delay / 1000}s...`);
+        setTimeout(startBot, delay);
       }
     });
 
@@ -109,6 +107,7 @@ async function startBot() {
   } catch (err) {
     console.error('[SERVIDOR] Error iniciando bot:', err.message);
     botStatus = 'disconnected';
+    sock = null;
     setTimeout(startBot, 10000);
   }
 }
@@ -626,8 +625,30 @@ async function updatePedidoStatus(conversationId, status) {
   } catch (_) {}
 }
 
+// ── Normalización de teléfonos al arrancar ─────────────────────
+async function fixPhoneNumbers() {
+  try {
+    const proveedores = await Proveedor.find({ whatsapp: { $exists: true, $ne: '' } }).lean();
+    let fixed = 0;
+    for (const p of proveedores) {
+      const norm = normalizePhone(p.whatsapp || '');
+      if (norm && norm !== p.whatsapp) {
+        await Proveedor.findByIdAndUpdate(p._id, { whatsapp: norm });
+        fixed++;
+        console.log(`[BOT] Proveedor ${p.nombre}: ${p.whatsapp} → ${norm}`);
+      }
+    }
+    if (fixed) console.log(`[BOT] ✅ ${fixed} números de proveedores normalizados`);
+  } catch (err) {
+    console.error('[BOT] Error normalizando teléfonos:', err.message);
+  }
+}
+
 // ── API pública ────────────────────────────────────────────────
-function initialize() { startBot(); }
+function initialize() {
+  fixPhoneNumbers();
+  startBot();
+}
 function getStatus()  { return { status: botStatus, qrDataURL: lastQRDataURL }; }
 
 async function sendMessage(phoneOrJid, text) {
