@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y \
     make \
     g++ \
     --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 WORKDIR /app
 
