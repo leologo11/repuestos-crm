@@ -41,7 +41,16 @@ async function startBot() {
       fetchLatestBaileysVersion,
     } = await import('@whiskeysockets/baileys');
 
-    const { state, saveCreds } = await useMongoAuthState();
+    let authResult;
+    try {
+      authResult = await useMongoAuthState();
+      console.log('[BOT] Sesion cargada desde MongoDB');
+    } catch (mongoErr) {
+      console.error('[BOT] MongoDB auth falló, usando archivo local:', mongoErr.message);
+      const { useMultiFileAuthState } = await import('@whiskeysockets/baileys');
+      authResult = await useMultiFileAuthState('.baileys_auth');
+    }
+    const { state, saveCreds } = authResult;
     let version;
     try {
       ({ version } = await fetchLatestBaileysVersion());
@@ -63,8 +72,12 @@ async function startBot() {
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         botStatus = 'qr_pending';
+        console.log('\n====================================================');
+        console.log('  📱 ESCANEA ESTE QR CON TU WHATSAPP');
+        console.log('  WhatsApp → Dispositivos vinculados → Vincular dispositivo');
+        console.log('====================================================\n');
         qrcode.generate(qr, { small: true });
-        console.log('[SERVIDOR] 📱 Escanea el QR con WhatsApp para conectar el bot');
+        console.log('\n====================================================\n');
         try {
           lastQRDataURL = await QRCode.toDataURL(qr);
           if (global.io) global.io.emit('bot:qr', { qrDataURL: lastQRDataURL });
