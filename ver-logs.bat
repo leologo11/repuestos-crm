@@ -32,5 +32,10 @@ echo Conectando a Railway...
 echo TIP: El QR aparecera aqui cuando el bot arranque.
 echo      Escanealo con WhatsApp ^> Dispositivos vinculados
 echo.
-railway logs --tail
-pause
+
+:loop
+railway logs
+echo.
+echo --- Actualizando en 3 segundos... ---
+timeout /t 3 /nobreak >nul
+goto loop
