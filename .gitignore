@@ -21,3 +21,4 @@ Thumbs.db
 
 # Claude
 .claude/
+package-lock.json
