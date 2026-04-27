@@ -496,6 +496,36 @@ router.post('/public/quote', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/quotes/:quoteId/resend', async (req, res) => {
+  try {
+    const quote = await Quote.findById(req.params.quoteId).populate('conversation_id');
+    if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
+
+    const conv = quote.conversation_id;
+    const requestText =
+      `📋 *Solicitud de cotización*\n\n` +
+      `Repuesto: *${quote.item_description}*\n` +
+      `Vehículo: *${quote.vehicle_model} ${quote.vehicle_year || ''}*\n` +
+      `Cliente: ${conv?.customer_name || 'Cliente'}\n\n` +
+      `Responde con el precio disponible 👇`;
+
+    const bot = require('../bot/whatsapp');
+    const proveedores = await Proveedor.find({ estado: 'Activo', whatsapp: { $exists: true, $ne: '' } });
+    const testNumber = process.env.TEST_SUPPLIER_NUMBER || '';
+    let sent = 0;
+
+    if (proveedores.length > 0) {
+      for (const p of proveedores) {
+        try { await bot.sendMessage(p.whatsapp, requestText); sent++; } catch (_) {}
+      }
+    } else if (testNumber) {
+      try { await bot.sendMessage(testNumber, requestText); sent++; } catch (_) {}
+    }
+
+    res.json({ sent, message: `Solicitud reenviada a ${sent} proveedor(es)` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/public/order/:secretCode', async (req, res) => {
   try {
     const pedido = await Pedido.findOne({ secretCode: req.params.secretCode.toUpperCase() })

@@ -21,8 +21,9 @@ export const sendAdminMessage   = (id, text)   => req(`/conversations/${id}/mess
 
 // ── Cotizaciones ──────────────────────────────────────────────
 export const getQuote           = (convId)     => req(`/quotes/conversation/${convId}`);
-export const sendQuoteToClient  = (qId, msg)   => req(`/quotes/${qId}/send`, { method: 'POST', body: JSON.stringify({ customMessage: msg }) });
-export const confirmPayment     = (convId)     => req(`/conversations/${convId}/confirm-payment`, { method: 'POST' });
+export const sendQuoteToClient      = (qId, msg) => req(`/quotes/${qId}/send`, { method: 'POST', body: JSON.stringify({ customMessage: msg }) });
+export const resendQuoteToSuppliers = (qId)      => req(`/quotes/${qId}/resend`, { method: 'POST' });
+export const confirmPayment         = (convId)   => req(`/conversations/${convId}/confirm-payment`, { method: 'POST' });
 
 // ── Proveedores ───────────────────────────────────────────────
 export const getProveedores     = ()           => req('/proveedores');

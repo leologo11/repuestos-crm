@@ -5,7 +5,7 @@ import {
   socket,
   getConversations, getConversation, getQuote, getProveedores,
   getProveedorQuotes, updateConversation, sendAdminMessage,
-  sendQuoteToClient, messageProveedor, confirmPayment,
+  sendQuoteToClient, messageProveedor, confirmPayment, resendQuoteToSuppliers,
 } from '../services/api.js';
 
 const STATUS_META = {
@@ -61,6 +61,7 @@ export default function InboxCRM() {
   const [provQuotes,     setProvQuotes]    = useState([]);
   const [provInput,      setProvInput]     = useState('');
   const [sendingProv,    setSendingProv]   = useState(false);
+  const [resending,      setResending]     = useState(null);
   const [mode,           setMode]          = useState('client'); // 'client' | 'provider'
 
   const selChat   = convs.find((c) => c._id === selId) || convs[0];
@@ -377,21 +378,39 @@ export default function InboxCRM() {
                       <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>{fmtTime(q.createdAt)}</div>
                     </div>
                     {/* Respuesta del proveedor */}
-                    <div style={{ padding: '10px 14px' }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>RESPUESTA</div>
-                      {resp?.price ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>
-                            ${resp.price.toLocaleString('es-CL')}
-                          </span>
-                          {resp.selected && (
-                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', padding: '2px 8px', borderRadius: 99 }}>
-                              Mejor precio
+                    <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>RESPUESTA</div>
+                        {resp?.price ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>
+                              ${resp.price.toLocaleString('es-CL')}
                             </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>Sin respuesta aún</span>
+                            {resp.selected && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', padding: '2px 8px', borderRadius: 99 }}>
+                                Mejor precio
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>Sin respuesta aún</span>
+                        )}
+                      </div>
+                      {!resp?.price && (
+                        <button
+                          disabled={resending === q._id}
+                          onClick={async () => {
+                            setResending(q._id);
+                            try {
+                              const r = await resendQuoteToSuppliers(q._id);
+                              alert(r.message);
+                            } catch (e) { alert('Error: ' + e.message); }
+                            setResending(null);
+                          }}
+                          style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--amber)', background: 'var(--amber-dim)', color: 'var(--amber)', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: resending === q._id ? 0.5 : 1 }}
+                        >
+                          {resending === q._id ? 'Enviando…' : '↺ Reenviar'}
+                        </button>
                       )}
                     </div>
                   </div>
