@@ -5,8 +5,32 @@ echo  LOGS EN VIVO - Repuestos CRM (Railway)
 echo  Presiona Ctrl+C para salir
 echo ================================================
 echo.
-echo TIP: El codigo QR aparecera automaticamente cuando
-echo      el bot arranque. Escanea con tu WhatsApp.
+
+:: Instalar Railway CLI si no existe
+where railway >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Railway CLI no encontrado. Instalando...
+    npm install -g @railway/cli
+    if %errorlevel% neq 0 (
+        echo.
+        echo ERROR: No se pudo instalar Railway CLI.
+        echo Asegurate de tener Node.js instalado: https://nodejs.org
+        pause
+        exit /b 1
+    )
+    echo [OK] Railway CLI instalado
+    echo.
+    echo Ahora inicia sesion en Railway:
+    railway login
+    echo.
+    echo Vincula tu proyecto:
+    railway link
+    echo.
+)
+
+echo Conectando a Railway...
+echo TIP: El QR aparecera aqui cuando el bot arranque.
+echo      Escanealo con WhatsApp ^> Dispositivos vinculados
 echo.
 railway logs --tail
 pause
