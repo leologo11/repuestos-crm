@@ -1,0 +1,68 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: oklch(98% 0.005 250);
+  --bg2: #ffffff;
+  --sidebar-bg: oklch(16% 0.04 255);
+  --sidebar-text: oklch(72% 0.02 250);
+  --sidebar-active: #ffffff;
+  --sidebar-hover: oklch(22% 0.04 255);
+  --border: oklch(90% 0.008 250);
+  --text: oklch(18% 0.02 250);
+  --text2: oklch(48% 0.02 250);
+  --accent: oklch(62% 0.17 162);
+  --accent-dim: oklch(94% 0.04 162);
+  --blue: oklch(42% 0.12 255);
+  --blue-dim: oklch(94% 0.03 255);
+  --amber: oklch(72% 0.15 75);
+  --amber-dim: oklch(96% 0.04 75);
+  --red: oklch(58% 0.16 25);
+  --red-dim: oklch(95% 0.04 25);
+  --card-shadow: 0 1px 3px oklch(0% 0 0 / 0.07), 0 1px 2px oklch(0% 0 0 / 0.04);
+  --radius: 10px;
+  --sidebar-width: 240px;
+}
+
+[data-theme="dark"] {
+  --bg: oklch(12% 0.02 255);
+  --bg2: oklch(16% 0.025 255);
+  --sidebar-bg: oklch(10% 0.025 255);
+  --sidebar-text: oklch(62% 0.02 250);
+  --sidebar-active: #ffffff;
+  --sidebar-hover: oklch(20% 0.03 255);
+  --border: oklch(24% 0.025 255);
+  --text: oklch(92% 0.01 250);
+  --text2: oklch(58% 0.02 250);
+  --accent: oklch(65% 0.17 162);
+  --accent-dim: oklch(22% 0.06 162);
+  --blue: oklch(62% 0.12 255);
+  --blue-dim: oklch(20% 0.06 255);
+  --amber: oklch(74% 0.15 75);
+  --amber-dim: oklch(22% 0.06 75);
+  --red: oklch(62% 0.16 25);
+  --red-dim: oklch(22% 0.06 25);
+  --card-shadow: 0 1px 3px oklch(0% 0 0 / 0.3);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+#root {
+  display: flex;
+  height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+@keyframes pulse0 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+@keyframes pulse1 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+@keyframes pulse2 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+@keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }

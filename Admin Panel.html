@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web-Repuestos · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: oklch(98% 0.005 250);
+    --bg2: #ffffff;
+    --sidebar-bg: oklch(16% 0.04 255);
+    --sidebar-text: oklch(72% 0.02 250);
+    --sidebar-active: #ffffff;
+    --sidebar-hover: oklch(22% 0.04 255);
+    --border: oklch(90% 0.008 250);
+    --text: oklch(18% 0.02 250);
+    --text2: oklch(48% 0.02 250);
+    --accent: oklch(62% 0.17 162);
+    --accent-dim: oklch(94% 0.04 162);
+    --blue: oklch(42% 0.12 255);
+    --blue-dim: oklch(94% 0.03 255);
+    --amber: oklch(72% 0.15 75);
+    --amber-dim: oklch(96% 0.04 75);
+    --red: oklch(58% 0.16 25);
+    --red-dim: oklch(95% 0.04 25);
+    --card-shadow: 0 1px 3px oklch(0% 0 0 / 0.07), 0 1px 2px oklch(0% 0 0 / 0.04);
+    --radius: 10px;
+    --sidebar-width: 240px;
+  }
+  [data-theme="dark"] {
+    --bg: oklch(12% 0.02 255);
+    --bg2: oklch(16% 0.025 255);
+    --sidebar-bg: oklch(10% 0.025 255);
+    --sidebar-text: oklch(62% 0.02 250);
+    --sidebar-active: #ffffff;
+    --sidebar-hover: oklch(20% 0.03 255);
+    --border: oklch(24% 0.025 255);
+    --text: oklch(92% 0.01 250);
+    --text2: oklch(58% 0.02 250);
+    --accent: oklch(65% 0.17 162);
+    --accent-dim: oklch(22% 0.06 162);
+    --blue: oklch(62% 0.12 255);
+    --blue-dim: oklch(20% 0.06 255);
+    --amber: oklch(74% 0.15 75);
+    --amber-dim: oklch(22% 0.06 75);
+    --red: oklch(62% 0.16 25);
+    --red-dim: oklch(22% 0.06 25);
+    --card-shadow: 0 1px 3px oklch(0% 0 0 / 0.3);
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; font-size: 14px; }
+  #root { display: flex; height: 100vh; }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  @keyframes pulse0 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  @keyframes pulse1 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  @keyframes pulse2 { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  @keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ── Icons (SVG inline) ──────────────────────────────────────
+const Icon = ({ d, size=16, stroke="currentColor", fill="none", ...p }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d={d}/>
+  </svg>
+);
+const Icons = {
+  dashboard: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+  suppliers: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  clients: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z",
+  sales: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  ai: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+  inbox: "M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2zM3 9h18M9 21V9",
+  pause: "M10 4H6v16h4V4zM18 4h-4v16h4V4z",
+  play: "M5 3l14 9-14 9V3z",
+  send: "M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z",
+  invoice: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
+  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+  zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  copy: "M20 9H11a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-9a2 2 0 00-2-2zM5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1",
+  settings: "M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
+  chevronLeft: "M15 18l-6-6 6-6",
+  chevronRight: "M9 18l6-6-6-6",
+  plus: "M12 5v14M5 12h14",
+  moon: "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
+  sun: "M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42 M12 17a5 5 0 100-10 5 5 0 000 10z",
+  x: "M18 6L6 18M6 6l12 12",
+  whatsapp: "M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.07-1.35A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2z",
+  check: "M20 6L9 17l-5-5",
+  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+  trending: "M23 6l-9.5 9.5-5-5L1 18",
+  bell: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
+  truck: "M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+  filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+};
+const Ico = ({ name, size=16, ...p }) => <Icon d={Icons[name]} size={size} {...p} />;
+
+// ── Mock Data ──────────────────────────────────────────────
+const PROVEEDORES = [
+  { id:1, nombre:"AutoParts Chile", marca:"Toyota / Suzuki", whatsapp:"+56 9 8765 4321", estado:"Activo", api:"Conectada", rating:98 },
+  { id:2, nombre:"Repuestos El Maestro", marca:"Honda / Mazda", whatsapp:"+56 9 7654 3210", estado:"Activo", api:"Conectada", rating:94 },
+  { id:3, nombre:"CarMax Mayorista", marca:"Chevrolet / Ford", whatsapp:"+56 9 6543 2109", estado:"Inactivo", api:"Sin API", rating:81 },
+  { id:4, nombre:"Distribuidora Sur", marca:"Hyundai / Kia", whatsapp:"+56 9 5432 1098", estado:"Activo", api:"Conectada", rating:97 },
+  { id:5, nombre:"TechAuto Import", marca:"BMW / Mercedes", whatsapp:"+56 9 4321 0987", estado:"Pendiente", api:"Sin API", rating:72 },
+];
+const CLIENTES = [
+  { id:1, nombre:"Carlos Mendoza", telefono:"+56 9 1234 5678", vehiculos:"Toyota Corolla 2019", pedidos:7, gasto:"$284.000" },
+  { id:2, nombre:"María González", telefono:"+56 9 2345 6789", vehiculos:"Honda Civic 2021", pedidos:3, gasto:"$91.500" },
+  { id:3, nombre:"Luis Farías", telefono:"+56 9 3456 7890", vehiculos:"Chevrolet Sail 2018", pedidos:12, gasto:"$541.000" },
+  { id:4, nombre:"Ana Rojas", telefono:"+56 9 4567 8901", vehiculos:"Hyundai Accent 2020", pedidos:2, gasto:"$43.000" },
+  { id:5, nombre:"Pedro Soto", telefono:"+56 9 5678 9012", vehiculos:"Kia Río 2022", pedidos:5, gasto:"$187.500" },
+];
+const VENTAS = [
+  { id:"V-0091", cliente:"Carlos Mendoza", repuesto:"Filtro de aceite Toyota", proveedor:"AutoParts Chile", costo:8500, margen:0.28, estado:"despachado", fecha:"24 Abr" },
+  { id:"V-0090", cliente:"María González", repuesto:"Pastillas de freno Honda", proveedor:"El Maestro", costo:22000, margen:0.25, estado:"aprobado", fecha:"24 Abr" },
+  { id:"V-0089", cliente:"Luis Farías", repuesto:"Correa distribución Chevrolet", proveedor:"CarMax", costo:31000, margen:0.32, estado:"cotizado", fecha:"23 Abr" },
+  { id:"V-0088", cliente:"Ana Rojas", repuesto:"Bujías Hyundai x4", proveedor:"Dist. Sur", costo:9600, margen:0.22, estado:"despachado", fecha:"23 Abr" },
+  { id:"V-0087", cliente:"Pedro Soto", repuesto:"Amortiguador trasero Kia", proveedor:"Dist. Sur", costo:47000, margen:0.30, estado:"aprobado", fecha:"22 Abr" },
+  { id:"V-0086", cliente:"Carlos Mendoza", repuesto:"Radiador Toyota Corolla", proveedor:"AutoParts Chile", costo:68000, margen:0.26, estado:"cotizado", fecha:"22 Abr" },
+];
+const AI_LOG = [
+  {
+    id:1, ts:"14:32", cliente:"Carlos Mendoza", tel:"+56 9 1234 5678",
+    msgCliente:"Hola, necesito un filtro de aceite para mi Toyota Corolla 2019, ¿tienen?",
+    intent:{ año:"2019", modelo:"Toyota Corolla", repuesto:"Filtro de aceite" },
+    proveedor:"AutoParts Chile", msgProveedor:"Hola! Sí tenemos filtro Toyota Corolla 2019 (OEM). Precio: $8.500",
+    precioBase:8500, margen:0.28, precioFinal:10880, estado:"respondido"
+  },
+  {
+    id:2, ts:"14:18", cliente:"María González", tel:"+56 9 2345 6789",
+    msgCliente:"Busco pastillas de freno delanteras para un Honda Civic 2021",
+    intent:{ año:"2021", modelo:"Honda Civic", repuesto:"Pastillas freno delanteras" },
+    proveedor:"Repuestos El Maestro", msgProveedor:"Tenemos pastillas Civic 2021 marca Brembo. Valor: $22.000 el juego.",
+    precioBase:22000, margen:0.25, precioFinal:27500, estado:"respondido"
+  },
+  {
+    id:3, ts:"14:05", cliente:"Luis Farías", tel:"+56 9 3456 7890",
+    msgCliente:"Hola! ¿tienen correa de distribución para Chevrolet Sail 2018?",
+    intent:{ año:"2018", modelo:"Chevrolet Sail", repuesto:"Correa distribución" },
+    proveedor:"CarMax Mayorista", msgProveedor:null,
+    precioBase:null, margen:0.32, precioFinal:null, estado:"esperando"
+  },
+  {
+    id:4, ts:"13:51", cliente:"Ana Rojas", tel:"+56 9 4567 8901",
+    msgCliente:"Necesito 4 bujías para Hyundai Accent 2020, las originales si tienen",
+    intent:{ año:"2020", modelo:"Hyundai Accent", repuesto:"Bujías x4 originales" },
+    proveedor:"Distribuidora Sur", msgProveedor:"Bujías originales Hyundai Accent 2020, stock 8 unidades. Precio unitario: $2.400 (pack x4: $9.600)",
+    precioBase:9600, margen:0.22, precioFinal:11712, estado:"respondido"
+  },
+];
+
+// ── Sidebar ────────────────────────────────────────────────
+const NAV = [
+  { id:"dashboard", label:"Dashboard", icon:"dashboard" },
+  { id:"proveedores", label:"Proveedores", icon:"suppliers" },
+  { id:"clientes", label:"Clientes", icon:"clients" },
+  { id:"ventas", label:"Ventas / Cotizaciones", icon:"sales" },
+  { id:"ai", label:"Log de IA", icon:"ai" },
+  { id:"inbox", label:"Inbox CRM", icon:"inbox" },
+  { id:"config", label:"Configuración", icon:"settings" },
+];
+
+function Sidebar({ active, setActive, collapsed, setCollapsed, dark, setDark }) {
+  return (
+    <aside style={{
+      width: collapsed ? 60 : 240,
+      minWidth: collapsed ? 60 : 240,
+      background: "var(--sidebar-bg)",
+      display:"flex", flexDirection:"column",
+      transition:"width .2s ease, min-width .2s ease",
+      overflow:"hidden",
+      position:"relative", zIndex:10,
+    }}>
+      {/* Logo */}
+      <div style={{ padding: collapsed ? "20px 0" : "20px 20px", display:"flex", alignItems:"center", gap:10, borderBottom:"1px solid oklch(24% 0.03 255)" }}>
+        <div style={{ width:32, height:32, borderRadius:8, background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </div>
+        {!collapsed && <span style={{ color:"white", fontWeight:700, fontSize:15, whiteSpace:"nowrap" }}>Web-Repuestos</span>}
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex:1, padding:"12px 8px", display:"flex", flexDirection:"column", gap:2 }}>
+        {NAV.map(n => (
+          <button key={n.id} onClick={() => setActive(n.id)} style={{
+            display:"flex", alignItems:"center", gap:10,
+            padding: collapsed ? "10px 0" : "9px 12px",
+            justifyContent: collapsed ? "center" : "flex-start",
+            borderRadius:8, border:"none", cursor:"pointer",
+            background: active===n.id ? "oklch(22% 0.04 255)" : "transparent",
+            color: active===n.id ? "white" : "var(--sidebar-text)",
+            fontFamily:"inherit", fontSize:13.5, fontWeight: active===n.id ? 600 : 400,
+            transition:"background .15s",
+            position:"relative",
+          }}
+          onMouseEnter={e => { if(active!==n.id) e.currentTarget.style.background="var(--sidebar-hover)"; }}
+          onMouseLeave={e => { if(active!==n.id) e.currentTarget.style.background="transparent"; }}
+          >
+            <Ico name={n.icon} size={17} style={{ flexShrink:0, color: active===n.id ? "var(--accent)" : "inherit" }}/>
+            {!collapsed && <span style={{ whiteSpace:"nowrap" }}>{n.label}</span>}
+            {active===n.id && <span style={{ position:"absolute", right:0, top:"25%", height:"50%", width:3, background:"var(--accent)", borderRadius:"3px 0 0 3px" }}/>}
+          </button>
+        ))}
+      </nav>
+
+      {/* Bottom */}
+      <div style={{ padding:"12px 8px", borderTop:"1px solid oklch(22% 0.03 255)", display:"flex", flexDirection:"column", gap:2 }}>
+        <button onClick={() => setDark(d => !d)} style={{
+          display:"flex", alignItems:"center", gap:10, justifyContent: collapsed ? "center" : "flex-start",
+          padding: collapsed ? "9px 0" : "9px 12px",
+          borderRadius:8, border:"none", cursor:"pointer",
+          background:"transparent", color:"var(--sidebar-text)", fontFamily:"inherit", fontSize:13,
+        }}
+        onMouseEnter={e => e.currentTarget.style.background="var(--sidebar-hover)"}
+        onMouseLeave={e => e.currentTarget.style.background="transparent"}
+        >
+          <Ico name={dark ? "sun" : "moon"} size={16}/>
+          {!collapsed && <span>{dark ? "Modo claro" : "Modo oscuro"}</span>}
+        </button>
+        <button onClick={() => setCollapsed(c => !c)} style={{
+          display:"flex", alignItems:"center", gap:10, justifyContent: collapsed ? "center" : "flex-start",
+          padding: collapsed ? "9px 0" : "9px 12px",
+          borderRadius:8, border:"none", cursor:"pointer",
+          background:"transparent", color:"var(--sidebar-text)", fontFamily:"inherit", fontSize:13,
+        }}
+        onMouseEnter={e => e.currentTarget.style.background="var(--sidebar-hover)"}
+        onMouseLeave={e => e.currentTarget.style.background="transparent"}
+        >
+          <Ico name={collapsed ? "chevronRight" : "chevronLeft"} size={16}/>
+          {!collapsed && <span>Colapsar</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ── Topbar ─────────────────────────────────────────────────
+function Topbar({ title, subtitle }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", height:60, borderBottom:"1px solid var(--border)", background:"var(--bg2)", flexShrink:0 }}>
+      <div>
+        <h1 style={{ fontSize:16, fontWeight:700, color:"var(--text)" }}>{title}</h1>
+        {subtitle && <p style={{ fontSize:12, color:"var(--text2)", marginTop:1 }}>{subtitle}</p>}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ position:"relative" }}>
+          <button style={{ width:36, height:36, borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--text2)" }}>
+            <Ico name="bell" size={16}/>
+          </button>
+          <span style={{ position:"absolute", top:7, right:7, width:7, height:7, borderRadius:"50%", background:"var(--red)", border:"2px solid var(--bg2)" }}/>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 12px 6px 6px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)" }}>
+          <div style={{ width:28, height:28, borderRadius:6, background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:700, fontSize:13 }}>A</div>
+          <div>
+            <div style={{ fontSize:12.5, fontWeight:600, color:"var(--text)", lineHeight:1.2 }}>Admin</div>
+            <div style={{ fontSize:11, color:"var(--text2)" }}>admin@web-repuestos.cl</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Card ───────────────────────────────────────────────────
+function Card({ children, style }) {
+  return <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:"var(--radius)", boxShadow:"var(--card-shadow)", ...style }}>{children}</div>;
+}
+
+// ── Badge ──────────────────────────────────────────────────
+function Badge({ label, type }) {
+  const map = {
+    despachado: { bg:"var(--accent-dim)", color:"var(--accent)" },
+    aprobado: { bg:"var(--blue-dim)", color:"var(--blue)" },
+    cotizado: { bg:"var(--amber-dim)", color:"var(--amber)" },
+    "Activo": { bg:"var(--accent-dim)", color:"var(--accent)" },
+    "Inactivo": { bg:"var(--red-dim)", color:"var(--red)" },
+    "Pendiente": { bg:"var(--amber-dim)", color:"var(--amber)" },
+    "Conectada": { bg:"var(--accent-dim)", color:"var(--accent)" },
+    "Sin API": { bg:"var(--red-dim)", color:"var(--red)" },
+    respondido: { bg:"var(--accent-dim)", color:"var(--accent)" },
+    esperando: { bg:"var(--amber-dim)", color:"var(--amber)" },
+  };
+  const s = map[label] || { bg:"var(--border)", color:"var(--text2)" };
+  return <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11.5, fontWeight:600, background:s.bg, color:s.color }}>{label}</span>;
+}
+
+// ── Dashboard ──────────────────────────────────────────────
+function MetricCard({ label, value, delta, color, icon }) {
+  const positive = delta?.startsWith("+");
+  return (
+    <Card style={{ padding:"20px 22px", display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+        <span style={{ fontSize:12.5, fontWeight:500, color:"var(--text2)" }}>{label}</span>
+        <div style={{ width:34, height:34, borderRadius:8, background:color+"22", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <Ico name={icon} size={17} style={{ color }} />
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize:26, fontWeight:700, color:"var(--text)", letterSpacing:"-0.5px" }}>{value}</div>
+        {delta && <div style={{ fontSize:12, color: positive ? "var(--accent)" : "var(--red)", marginTop:4, fontWeight:500 }}>{delta} vs mes anterior</div>}
+      </div>
+    </Card>
+  );
+}
+
+function LineChart({ data, labels, color }) {
+  const ref = useRef();
+  const chart = useRef();
+  useEffect(() => {
+    if (chart.current) chart.current.destroy();
+    const ctx = ref.current.getContext("2d");
+    const grad = ctx.createLinearGradient(0,0,0,120);
+    grad.addColorStop(0, "rgba(52,199,89,0.27)");
+    grad.addColorStop(1, "rgba(52,199,89,0)");
+    chart.current = new Chart(ctx, {
+      type:"line",
+      data: { labels, datasets:[{ data, borderColor:color, backgroundColor:grad, fill:true, tension:0.4, pointRadius:0, borderWidth:2 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ mode:"index", intersect:false, callbacks:{ label: c => `$${c.raw.toLocaleString()}` } } },
+        scales:{ x:{ grid:{display:false}, ticks:{color:"#888", font:{size:11}} }, y:{ grid:{color:"#88888811"}, ticks:{color:"#888", font:{size:11}, callback:v=>`$${(v/1000).toFixed(0)}k`} } },
+      }
+    });
+    return () => chart.current?.destroy();
+  }, [data, color]);
+  return <div style={{ position:"relative", height:140 }}><canvas ref={ref}/></div>;
+}
+
+function BarChart({ data, labels, colors }) {
+  const ref = useRef();
+  const chart = useRef();
+  useEffect(() => {
+    if (chart.current) chart.current.destroy();
+    chart.current = new Chart(ref.current.getContext("2d"), {
+      type:"bar",
+      data:{ labels, datasets:[{ data, backgroundColor:colors, borderRadius:5, borderSkipped:false }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}%`}}},
+        scales:{ x:{grid:{display:false},ticks:{color:"#888",font:{size:11}}}, y:{grid:{color:"#88888811"},ticks:{color:"#888",font:{size:11},callback:v=>v+"%"}} }
+      }
+    });
+    return () => chart.current?.destroy();
+  }, []);
+  return <div style={{ position:"relative", height:120 }}><canvas ref={ref}/></div>;
+}
+
+const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const ventasMes = [182000,210000,197000,245000,268000,231000,290000,315000,288000,340000,371000,410000];
+const margenMes = [22,23,21,24,25,23,26,27,25,28,28,30];
+
+function Dashboard() {
+  return (
+    <div style={{ padding:"28px", display:"flex", flexDirection:"column", gap:22, overflowY:"auto", flex:1 }}>
+      {/* Metrics */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14 }}>
+        <MetricCard label="Ventas del Mes" value="$410.000" delta="+10,5%" color="var(--accent)" icon="sales"/>
+        <MetricCard label="Margen Total" value="30%" delta="+2pt" color="var(--blue)" icon="trending"/>
+        <MetricCard label="Pedidos Activos" value="14" delta="+3" color="var(--amber)" icon="truck"/>
+        <MetricCard label="Proveedores Online" value="3 / 5" delta={null} color="var(--red)" icon="suppliers"/>
+      </div>
+
+      {/* Charts row */}
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:14 }}>
+        <Card style={{ padding:"22px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:14 }}>Ventas mensuales</div>
+              <div style={{ fontSize:12, color:"var(--text2)", marginTop:2 }}>Últimos 12 meses</div>
+            </div>
+            <span style={{ fontSize:12, color:"var(--accent)", fontWeight:600, background:"var(--accent-dim)", padding:"4px 10px", borderRadius:6 }}>+10.5% este mes</span>
+          </div>
+          <LineChart data={ventasMes} labels={meses} color="oklch(62% 0.17 162)"/>
+        </Card>
+        <Card style={{ padding:"22px" }}>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>Margen por mes (%)</div>
+          <div style={{ fontSize:12, color:"var(--text2)", marginBottom:14 }}>Promedio anual: 25.2%</div>
+          <BarChart
+            data={margenMes}
+            labels={meses}
+            colors={margenMes.map(v => v>=28 ? "oklch(62% 0.17 162)" : v>=25 ? "oklch(62% 0.12 255)" : "oklch(72% 0.15 75)")}
+          />
+        </Card>
+      </div>
+
+      {/* Recent orders */}
+      <Card style={{ padding:"22px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div style={{ fontWeight:700, fontSize:14 }}>Últimas ventas</div>
+          <span style={{ fontSize:12, color:"var(--text2)" }}>Hoy, 24 Abr 2026</span>
+        </div>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead>
+            <tr style={{ borderBottom:"1px solid var(--border)" }}>
+              {["ID","Cliente","Repuesto","Proveedor","Precio Final","Margen","Estado"].map(h => (
+                <th key={h} style={{ textAlign:"left", padding:"8px 10px", fontSize:11.5, color:"var(--text2)", fontWeight:600 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {VENTAS.slice(0,4).map(v => {
+              const final = Math.round(v.costo * (1+v.margen));
+              return (
+                <tr key={v.id} style={{ borderBottom:"1px solid var(--border)" }}
+                  onMouseEnter={e => e.currentTarget.style.background="var(--bg)"}
+                  onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                >
+                  <td style={{ padding:"11px 10px", fontSize:12.5, fontWeight:600, color:"var(--text2)" }}>{v.id}</td>
+                  <td style={{ padding:"11px 10px", fontSize:12.5 }}>{v.cliente}</td>
+                  <td style={{ padding:"11px 10px", fontSize:12.5, color:"var(--text2)" }}>{v.repuesto}</td>
+                  <td style={{ padding:"11px 10px", fontSize:12.5, color:"var(--text2)" }}>{v.proveedor}</td>
+                  <td style={{ padding:"11px 10px", fontSize:12.5, fontWeight:600 }}>${final.toLocaleString()}</td>
+                  <td style={{ padding:"11px 10px" }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:"var(--accent)" }}>{Math.round(v.margen*100)}%</span>
+                  </td>
+                  <td style={{ padding:"11px 10px" }}><Badge label={v.estado}/></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+// ── Proveedores ────────────────────────────────────────────
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, background:"oklch(0% 0 0 / 0.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}
+      onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
+      <div style={{ background:"var(--bg2)", borderRadius:12, padding:28, width:440, boxShadow:"0 20px 60px oklch(0% 0 0 / 0.25)", border:"1px solid var(--border)" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ProveedoresView() {
+  const [rows, setRows] = useState(PROVEEDORES);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ nombre:"", marca:"", whatsapp:"", api:"Sin API" });
+
+  const save = () => {
+    if (!form.nombre) return;
+    setRows(r => [...r, { id:r.length+1, nombre:form.nombre, marca:form.marca||"—", whatsapp:form.whatsapp||"—", estado:"Pendiente", api:form.api, rating:0 }]);
+    setModal(false);
+    setForm({ nombre:"", marca:"", whatsapp:"", api:"Sin API" });
+  };
+
+  return (
+    <div style={{ padding:28, flex:1, overflowY:"auto" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+        <div style={{ fontSize:13, color:"var(--text2)" }}>{rows.length} proveedores registrados</div>
+        <button onClick={() => setModal(true)} style={{
+          display:"flex", alignItems:"center", gap:7, padding:"9px 16px", borderRadius:8,
+          background:"var(--accent)", color:"white", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:600,
+        }}>
+          <Ico name="plus" size={15}/>
+          Agregar Proveedor
+        </button>
+      </div>
+      <Card>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead>
+            <tr style={{ borderBottom:"1px solid var(--border)" }}>
+              {["Proveedor","Marcas","WhatsApp","Estado API","Rating","Estado",""].map(h => (
+                <th key={h} style={{ textAlign:"left", padding:"12px 16px", fontSize:11.5, color:"var(--text2)", fontWeight:600 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(p => (
+              <tr key={p.id} style={{ borderBottom:"1px solid var(--border)" }}
+                onMouseEnter={e => e.currentTarget.style.background="var(--bg)"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              >
+                <td style={{ padding:"14px 16px" }}>
+                  <div style={{ fontWeight:600, fontSize:13.5 }}>{p.nombre}</div>
+                </td>
+                <td style={{ padding:"14px 16px", fontSize:13, color:"var(--text2)" }}>{p.marca}</td>
+                <td style={{ padding:"14px 16px", fontSize:13, color:"var(--text2)" }}>{p.whatsapp}</td>
+                <td style={{ padding:"14px 16px" }}><Badge label={p.api}/></td>
+                <td style={{ padding:"14px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <div style={{ flex:1, height:5, borderRadius:3, background:"var(--border)", maxWidth:60 }}>
+                      <div style={{ width:`${p.rating}%`, height:"100%", borderRadius:3, background: p.rating>=90?"var(--accent)":p.rating>=75?"var(--amber)":"var(--red)" }}/>
+                    </div>
+                    <span style={{ fontSize:12, fontWeight:600, color:"var(--text2)" }}>{p.rating}%</span>
+                  </div>
+                </td>
+                <td style={{ padding:"14px 16px" }}><Badge label={p.estado}/></td>
+                <td style={{ padding:"14px 16px" }}>
+                  <button style={{ fontSize:12, color:"var(--text2)", border:"1px solid var(--border)", borderRadius:6, padding:"5px 12px", background:"transparent", cursor:"pointer", fontFamily:"inherit" }}>Editar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <Modal open={modal} onClose={() => setModal(false)}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <div style={{ fontWeight:700, fontSize:16 }}>Agregar Proveedor</div>
+          <button onClick={() => setModal(false)} style={{ border:"none", background:"transparent", cursor:"pointer", color:"var(--text2)" }}><Ico name="x" size={18}/></button>
+        </div>
+        {[["Nombre del proveedor","nombre","Ej: AutoParts Chile"],["Marcas que distribuye","marca","Ej: Toyota, Honda"],["WhatsApp (con código país)","whatsapp","Ej: +56 9 8765 4321"]].map(([label,key,ph]) => (
+          <div key={key} style={{ marginBottom:14 }}>
+            <label style={{ display:"block", fontSize:12.5, fontWeight:600, color:"var(--text2)", marginBottom:6 }}>{label}</label>
+            <input value={form[key]} onChange={e => setForm(f=>({...f,[key]:e.target.value}))} placeholder={ph}
+              style={{ width:"100%", padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", color:"var(--text)", fontFamily:"inherit", fontSize:13, outline:"none" }}/>
+          </div>
+        ))}
+        <div style={{ marginBottom:20 }}>
+          <label style={{ display:"block", fontSize:12.5, fontWeight:600, color:"var(--text2)", marginBottom:6 }}>Estado API</label>
+          <select value={form.api} onChange={e => setForm(f=>({...f,api:e.target.value}))}
+            style={{ width:"100%", padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", color:"var(--text)", fontFamily:"inherit", fontSize:13 }}>
+            <option>Sin API</option>
+            <option>Conectada</option>
+          </select>
+        </div>
+        <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+          <button onClick={() => setModal(false)} style={{ padding:"9px 18px", borderRadius:8, border:"1px solid var(--border)", background:"transparent", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:"var(--text)" }}>Cancelar</button>
+          <button onClick={save} style={{ padding:"9px 18px", borderRadius:8, border:"none", background:"var(--accent)", color:"white", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:600 }}>Guardar</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ── Clientes ───────────────────────────────────────────────
+function ClientesView() {
+  return (
+    <div style={{ padding:28, flex:1, overflowY:"auto" }}>
+      <div style={{ fontSize:13, color:"var(--text2)", marginBottom:20 }}>{CLIENTES.length} clientes registrados</div>
+      <Card>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead>
+            <tr style={{ borderBottom:"1px solid var(--border)" }}>
+              {["Cliente","Teléfono","Vehículos","Pedidos","Gasto Total"].map(h => (
+                <th key={h} style={{ textAlign:"left", padding:"12px 16px", fontSize:11.5, color:"var(--text2)", fontWeight:600 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {CLIENTES.map(c => (
+              <tr key={c.id} style={{ borderBottom:"1px solid var(--border)" }}
+                onMouseEnter={e => e.currentTarget.style.background="var(--bg)"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              >
+                <td style={{ padding:"14px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--blue-dim)", color:"var(--blue)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13 }}>{c.nombre[0]}</div>
+                    <span style={{ fontWeight:600, fontSize:13.5 }}>{c.nombre}</span>
+                  </div>
+                </td>
+                <td style={{ padding:"14px 16px", fontSize:13, color:"var(--text2)" }}>{c.telefono}</td>
+                <td style={{ padding:"14px 16px", fontSize:13, color:"var(--text2)" }}>{c.vehiculos}</td>
+                <td style={{ padding:"14px 16px", fontSize:13, fontWeight:600 }}>{c.pedidos}</td>
+                <td style={{ padding:"14px 16px", fontSize:13, fontWeight:700, color:"var(--accent)" }}>{c.gasto}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+// ── Ventas ─────────────────────────────────────────────────
+function VentasView() {
+  const [filter, setFilter] = useState("todos");
+  const estados = ["todos","cotizado","aprobado","despachado"];
+  const filtered = filter==="todos" ? VENTAS : VENTAS.filter(v=>v.estado===filter);
+
+  return (
+    <div style={{ padding:28, flex:1, overflowY:"auto" }}>
+      {/* Filter tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:20, background:"var(--bg)", border:"1px solid var(--border)", borderRadius:8, padding:4, width:"fit-content" }}>
+        {estados.map(e => (
+          <button key={e} onClick={() => setFilter(e)} style={{
+            padding:"7px 16px", borderRadius:6, border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:500,
+            background: filter===e ? "var(--bg2)" : "transparent",
+            color: filter===e ? "var(--text)" : "var(--text2)",
+            boxShadow: filter===e ? "var(--card-shadow)" : "none",
+            textTransform:"capitalize",
+          }}>{e}</button>
+        ))}
+      </div>
+
+      <Card>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead>
+            <tr style={{ borderBottom:"1px solid var(--border)" }}>
+              {["ID","Cliente","Repuesto","Proveedor","Costo","Margen","Precio Final","Estado","Fecha"].map(h => (
+                <th key={h} style={{ textAlign:"left", padding:"12px 16px", fontSize:11.5, color:"var(--text2)", fontWeight:600 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(v => {
+              const final = Math.round(v.costo*(1+v.margen));
+              return (
+                <tr key={v.id} style={{ borderBottom:"1px solid var(--border)" }}
+                  onMouseEnter={e => e.currentTarget.style.background="var(--bg)"}
+                  onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                >
+                  <td style={{ padding:"13px 16px", fontSize:12.5, fontWeight:600, color:"var(--text2)" }}>{v.id}</td>
+                  <td style={{ padding:"13px 16px", fontSize:13 }}>{v.cliente}</td>
+                  <td style={{ padding:"13px 16px", fontSize:12.5, color:"var(--text2)" }}>{v.repuesto}</td>
+                  <td style={{ padding:"13px 16px", fontSize:12.5, color:"var(--text2)" }}>{v.proveedor}</td>
+                  <td style={{ padding:"13px 16px", fontSize:12.5 }}>${v.costo.toLocaleString()}</td>
+                  <td style={{ padding:"13px 16px" }}>
+                    <span style={{ fontSize:12.5, fontWeight:700, color:"var(--accent)" }}>{Math.round(v.margen*100)}%</span>
+                  </td>
+                  <td style={{ padding:"13px 16px", fontSize:13, fontWeight:700 }}>${final.toLocaleString()}</td>
+                  <td style={{ padding:"13px 16px" }}><Badge label={v.estado}/></td>
+                  <td style={{ padding:"13px 16px", fontSize:12.5, color:"var(--text2)" }}>{v.fecha}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+// ── AI Log ─────────────────────────────────────────────────
+function MarginPill({ margen, base, final }) {
+  return (
+    <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 12px", borderRadius:99, background:"var(--accent-dim)", border:"1px solid oklch(62% 0.17 162 / 0.2)" }}>
+      <span style={{ fontSize:11, color:"var(--text2)" }}>Base: <strong style={{ color:"var(--text)" }}>${base?.toLocaleString()}</strong></span>
+      <span style={{ width:1, height:12, background:"var(--border)" }}/>
+      <span style={{ fontSize:11, fontWeight:700, color:"var(--accent)" }}>+{Math.round(margen*100)}% margen</span>
+      <span style={{ width:1, height:12, background:"var(--border)" }}/>
+      <span style={{ fontSize:11, color:"var(--text2)" }}>Final: <strong style={{ color:"var(--accent)" }}>${final?.toLocaleString()}</strong></span>
+    </div>
+  );
+}
+
+function AILogView() {
+  const [selected, setSelected] = useState(AI_LOG[0]);
+
+  return (
+    <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+      {/* List */}
+      <div style={{ width:300, borderRight:"1px solid var(--border)", background:"var(--bg2)", overflowY:"auto", flexShrink:0 }}>
+        <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", fontSize:12, fontWeight:600, color:"var(--text2)" }}>CONVERSACIONES HOY</div>
+        {AI_LOG.map(entry => (
+          <div key={entry.id} onClick={() => setSelected(entry)}
+            style={{
+              padding:"14px 16px", cursor:"pointer", borderBottom:"1px solid var(--border)",
+              background: selected?.id===entry.id ? "var(--bg)" : "transparent",
+              borderLeft: selected?.id===entry.id ? "3px solid var(--accent)" : "3px solid transparent",
+            }}
+            onMouseEnter={e => { if(selected?.id!==entry.id) e.currentTarget.style.background="var(--bg)"; }}
+            onMouseLeave={e => { if(selected?.id!==entry.id) e.currentTarget.style.background="transparent"; }}
+          >
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
+              <span style={{ fontSize:13, fontWeight:600 }}>{entry.cliente}</span>
+              <span style={{ fontSize:11, color:"var(--text2)" }}>{entry.ts}</span>
+            </div>
+            <div style={{ fontSize:12, color:"var(--text2)", marginBottom:6, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{entry.msgCliente}</div>
+            <Badge label={entry.estado}/>
+          </div>
+        ))}
+      </div>
+
+      {/* Detail */}
+      {selected && (
+        <div style={{ flex:1, overflowY:"auto", padding:"24px 28px", display:"flex", flexDirection:"column", gap:16 }}>
+          {/* Header */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:16 }}>{selected.cliente}</div>
+              <div style={{ fontSize:12.5, color:"var(--text2)" }}>{selected.tel}</div>
+            </div>
+            <Badge label={selected.estado}/>
+          </div>
+
+          {/* Intent extract */}
+          <Card style={{ padding:"14px 18px" }}>
+            <div style={{ fontSize:11.5, fontWeight:600, color:"var(--text2)", marginBottom:8 }}>EXTRACCIÓN NLP</div>
+            <div style={{ display:"flex", gap:16 }}>
+              {Object.entries(selected.intent).map(([k,v]) => (
+                <div key={k}>
+                  <div style={{ fontSize:10.5, color:"var(--text2)", textTransform:"uppercase", letterSpacing:0.5 }}>{k}</div>
+                  <div style={{ fontSize:13.5, fontWeight:700, color:"var(--text)", marginTop:2 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Chat */}
+          <Card style={{ padding:"18px 20px" }}>
+            <div style={{ fontSize:11.5, fontWeight:600, color:"var(--text2)", marginBottom:14 }}>FLUJO DE MENSAJES</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              {/* Client msg */}
+              <div style={{ display:"flex", gap:12 }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:"var(--blue-dim)", color:"var(--blue)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, flexShrink:0 }}>{selected.cliente[0]}</div>
+                <div>
+                  <div style={{ fontSize:11, color:"var(--text2)", marginBottom:5 }}>Cliente · {selected.ts}</div>
+                  <div style={{ background:"var(--bg)", border:"1px solid var(--border)", borderRadius:"0 10px 10px 10px", padding:"10px 14px", fontSize:13.5, maxWidth:380 }}>{selected.msgCliente}</div>
+                </div>
+              </div>
+
+              {/* Bot forward */}
+              <div style={{ display:"flex", gap:12, paddingLeft:10 }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:"oklch(22% 0.06 162)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </div>
+                <div>
+                  <div style={{ fontSize:11, color:"var(--text2)", marginBottom:5 }}>IA → {selected.proveedor}</div>
+                  <div style={{ background:"oklch(22% 0.06 162)", border:"1px solid oklch(62% 0.17 162 / 0.2)", borderRadius:"0 10px 10px 10px", padding:"10px 14px", fontSize:13.5, maxWidth:380, color:"var(--accent)" }}>
+                    📋 Solicitud automática: {selected.intent.repuesto} · {selected.intent.modelo} {selected.intent.año}
+                  </div>
+                </div>
+              </div>
+
+              {/* Supplier response */}
+              {selected.msgProveedor ? (
+                <div>
+                  <div style={{ display:"flex", gap:12 }}>
+                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--amber-dim)", color:"var(--amber)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:11, flexShrink:0 }}>PR</div>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--text2)", marginBottom:5 }}>{selected.proveedor} · respuesta</div>
+                      <div style={{ background:"var(--bg)", border:"1px solid var(--border)", borderRadius:"0 10px 10px 10px", padding:"10px 14px", fontSize:13.5, maxWidth:380 }}>{selected.msgProveedor}</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop:12, marginLeft:44 }}>
+                    <MarginPill margen={selected.margen} base={selected.precioBase} final={selected.precioFinal}/>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display:"flex", gap:12 }}>
+                  <div style={{ width:32, height:32, borderRadius:8, background:"var(--amber-dim)", color:"var(--amber)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Ico name="clock" size={14} style={{ color:"var(--amber)" }}/>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:11, color:"var(--text2)", marginBottom:5 }}>{selected.proveedor}</div>
+                    <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"9px 14px", borderRadius:8, background:"var(--amber-dim)", border:"1px solid oklch(72% 0.15 75 / 0.2)", fontSize:13, color:"var(--amber)", fontWeight:500 }}>
+                      <Ico name="clock" size={14} style={{ color:"var(--amber)" }}/>
+                      Esperando respuesta del proveedor…
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Inbox CRM ──────────────────────────────────────────────
+const INBOX_CLIENTES = [
+  { id:"c1", nombre:"Carlos Mendoza", tel:"+56 9 1234 5678", vehiculo:"Toyota Corolla 2019", ultimo:"necesito un filtro de aceite...", ts:"14:32", unread:2, status:"esperando_proveedor", botActivo:true },
+  { id:"c2", nombre:"María González", tel:"+56 9 2345 6789", vehiculo:"Honda Civic 2021", ultimo:"¿cuánto demora el envío?", ts:"14:18", unread:0, status:"esperando_cliente", botActivo:true },
+  { id:"c3", nombre:"Luis Farías", tel:"+56 9 3456 7890", vehiculo:"Chevrolet Sail 2018", ultimo:"Hola! ¿tienen correa de distribución?", ts:"14:05", unread:1, status:"intervencion_humana", botActivo:false },
+  { id:"c4", nombre:"Ana Rojas", tel:"+56 9 4567 8901", vehiculo:"Hyundai Accent 2020", ultimo:"Perfecto, procedo con la compra", ts:"13:51", unread:0, status:"cerrado", botActivo:false },
+  { id:"c5", nombre:"Pedro Soto", tel:"+56 9 5678 9012", vehiculo:"Kia Río 2022", ultimo:"necesito amortiguadores traseros", ts:"13:20", unread:3, status:"esperando_proveedor", botActivo:true },
+];
+const INBOX_PROVEEDORES = [
+  { id:"p1", nombre:"AutoParts Chile", online:true, ultimo:"Filtro Toyota: $8.500 disponible", ts:"14:33" },
+  { id:"p2", nombre:"Repuestos El Maestro", online:true, ultimo:"Pastillas Brembo Civic: $22.000", ts:"14:20" },
+  { id:"p3", nombre:"CarMax Mayorista", online:false, ultimo:"Sin respuesta (correa Sail)", ts:"14:06" },
+  { id:"p4", nombre:"Distribuidora Sur", online:true, ultimo:"Bujías Accent x4: $9.600", ts:"13:52" },
+];
+const CHAT_MSGS = {
+  c1: [
+    { from:"cliente", text:"Hola, necesito un filtro de aceite para mi Toyota Corolla 2019, ¿tienen?", ts:"14:30" },
+    { from:"bot", text:"¡Hola Carlos! Entendido, estoy buscando el filtro de aceite para tu Toyota Corolla 2019. Dame unos minutos mientras consulto con mis proveedores 🔍", ts:"14:30" },
+    { from:"cliente", text:"Perfecto, gracias", ts:"14:31" },
+    { from:"bot", text:"__processing__", ts:"14:32" },
+  ],
+  c2: [
+    { from:"cliente", text:"Busco pastillas de freno delanteras para un Honda Civic 2021", ts:"14:15" },
+    { from:"bot", text:"¡Hola María! Tengo pastillas de freno delanteras para tu Honda Civic 2021 a $27.500. ¿Te gustaría proceder con la compra?", ts:"14:17" },
+    { from:"cliente", text:"¿cuánto demora el envío?", ts:"14:18" },
+  ],
+  c3: [
+    { from:"cliente", text:"Hola! ¿tienen correa de distribución para Chevrolet Sail 2018?", ts:"14:02" },
+    { from:"bot", text:"¡Hola Luis! Buscando la correa de distribución para tu Chevrolet Sail 2018...", ts:"14:03" },
+    { from:"sistema", text:"⚠️ Bot pausado — intervención manual activada por Admin", ts:"14:05" },
+    { from:"cliente", text:"¿Siguen ahí?", ts:"14:07" },
+  ],
+  c4: [
+    { from:"cliente", text:"Necesito 4 bujías para Hyundai Accent 2020, las originales", ts:"13:48" },
+    { from:"bot", text:"¡Hola Ana! Tengo bujías originales Hyundai Accent 2020 (pack x4) a $11.712. ¿Procedemos?", ts:"13:50" },
+    { from:"cliente", text:"Perfecto, procedo con la compra", ts:"13:51" },
+    { from:"bot", text:"¡Excelente! Tu pedido ha sido registrado. Recibirás confirmación pronto. ✅", ts:"13:51" },
+  ],
+  c5: [
+    { from:"cliente", text:"Buenas, necesito amortiguadores traseros para mi Kia Río 2022, ¿tienen stock?", ts:"13:18" },
+    { from:"bot", text:"¡Hola Pedro! Consultando con nuestros proveedores especializados en Kia. Dame un momento ⏳", ts:"13:19" },
+    { from:"cliente", text:"ok espero", ts:"13:20" },
+  ],
+};
+const QUOTES = {
+  c1: {
+    item:"Filtro de aceite — Toyota Corolla 2019",
+    margen:0.28,
+    proveedores:[
+      { nombre:"AutoParts Chile", precio:8500, estado:"respondido", seleccionado:true },
+      { nombre:"Distribuidora Sur", precio:9200, estado:"respondido", seleccionado:false },
+      { nombre:"CarMax Mayorista", precio:null, estado:"esperando", seleccionado:false },
+    ]
+  },
+  c2: {
+    item:"Pastillas freno delanteras — Honda Civic 2021",
+    margen:0.25,
+    proveedores:[
+      { nombre:"Repuestos El Maestro", precio:22000, estado:"respondido", seleccionado:true },
+      { nombre:"AutoParts Chile", precio:24500, estado:"respondido", seleccionado:false },
+    ]
+  },
+  c5: {
+    item:"Amortiguador trasero — Kia Río 2022",
+    margen:0.30,
+    proveedores:[
+      { nombre:"Distribuidora Sur", precio:null, estado:"esperando", seleccionado:false },
+      { nombre:"AutoParts Chile", precio:null, estado:"esperando", seleccionado:false },
+      { nombre:"TechAuto Import", precio:null, estado:"esperando", seleccionado:false },
+    ]
+  },
+};
+const STATUS_LABEL = {
+  esperando_proveedor: { label:"Esp. proveedor", color:"var(--amber)", bg:"var(--amber-dim)" },
+  esperando_cliente:   { label:"Esp. cliente",   color:"var(--blue)",  bg:"var(--blue-dim)" },
+  intervencion_humana: { label:"Intervención",   color:"var(--red)",   bg:"var(--red-dim)" },
+  cerrado:             { label:"Cerrado",         color:"var(--text2)", bg:"var(--border)" },
+};
+
+function StatusPill({ status }) {
+  const s = STATUS_LABEL[status] || { label:status, color:"var(--text2)", bg:"var(--border)" };
+  return <span style={{ fontSize:10.5, fontWeight:600, padding:"2px 7px", borderRadius:99, background:s.bg, color:s.color }}>{s.label}</span>;
+}
+
+function InboxView() {
+  const [selChat, setSelChat] = useState(INBOX_CLIENTES[0]);
+  const [botOn, setBotOn] = useState(selChat?.botActivo ?? true);
+  const [inputMsg, setInputMsg] = useState("");
+  const [msgs, setMsgs] = useState(CHAT_MSGS);
+  const [showDocMenu, setShowDocMenu] = useState(false);
+  const chatEndRef = useRef();
+
+  useEffect(() => {
+    setBotOn(selChat?.botActivo ?? true);
+  }, [selChat]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block:"end" });
+  }, [selChat, msgs]);
+
+  const sendMsg = () => {
+    if (!inputMsg.trim() || !selChat) return;
+    setMsgs(m => ({
+      ...m,
+      [selChat.id]: [...(m[selChat.id]||[]), { from:"admin", text:inputMsg.trim(), ts: new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}) }]
+    }));
+    setInputMsg("");
+  };
+
+  const quote = QUOTES[selChat?.id];
+  const bestPrice = quote ? Math.min(...quote.proveedores.filter(p=>p.precio).map(p=>p.precio)) : null;
+  const finalPrice = bestPrice ? Math.round(bestPrice*(1+quote.margen)) : null;
+  const allWaiting = quote && quote.proveedores.every(p=>!p.precio);
+
+  return (
+    <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+
+      {/* ── Col 1: Chat List ── */}
+      <div style={{ width:272, borderRight:"1px solid var(--border)", background:"var(--bg2)", display:"flex", flexDirection:"column", flexShrink:0 }}>
+        {/* Clientes */}
+        <div style={{ padding:"10px 14px 6px", fontSize:10.5, fontWeight:700, color:"var(--text2)", letterSpacing:0.8, borderBottom:"1px solid var(--border)" }}>
+          CLIENTES · {INBOX_CLIENTES.length}
+        </div>
+        <div style={{ overflowY:"auto", flex:1 }}>
+          {INBOX_CLIENTES.map(c => (
+            <div key={c.id} onClick={() => setSelChat(c)}
+              style={{
+                padding:"11px 14px", cursor:"pointer", borderBottom:"1px solid var(--border)",
+                background: selChat?.id===c.id ? "var(--bg)" : "transparent",
+                borderLeft: selChat?.id===c.id ? "3px solid var(--accent)" : "3px solid transparent",
+              }}
+              onMouseEnter={e => { if(selChat?.id!==c.id) e.currentTarget.style.background="var(--bg)"; }}
+              onMouseLeave={e => { if(selChat?.id!==c.id) e.currentTarget.style.background="transparent"; }}
+            >
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
+                <span style={{ fontSize:13, fontWeight:600, color:"var(--text)" }}>{c.nombre}</span>
+                <span style={{ fontSize:10.5, color:"var(--text2)" }}>{c.ts}</span>
+              </div>
+              <div style={{ fontSize:11.5, color:"var(--text2)", marginBottom:5, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.ultimo}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <StatusPill status={c.status}/>
+                {c.unread>0 && <span style={{ marginLeft:"auto", minWidth:18, height:18, borderRadius:99, background:"var(--accent)", color:"white", fontSize:10.5, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 5px" }}>{c.unread}</span>}
+              </div>
+            </div>
+          ))}
+
+          {/* Proveedores */}
+          <div style={{ padding:"10px 14px 6px", fontSize:10.5, fontWeight:700, color:"var(--text2)", letterSpacing:0.8, borderBottom:"1px solid var(--border)", borderTop:"1px solid var(--border)", marginTop:4 }}>
+            PROVEEDORES · {INBOX_PROVEEDORES.length}
+          </div>
+          {INBOX_PROVEEDORES.map(p => (
+            <div key={p.id}
+              style={{ padding:"10px 14px", cursor:"pointer", borderBottom:"1px solid var(--border)" }}
+              onMouseEnter={e => e.currentTarget.style.background="var(--bg)"}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}
+            >
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                  <span style={{ width:7, height:7, borderRadius:"50%", background:p.online?"var(--accent)":"var(--border)", flexShrink:0 }}/>
+                  <span style={{ fontSize:12.5, fontWeight:600, color:"var(--text)" }}>{p.nombre}</span>
+                </div>
+                <span style={{ fontSize:10.5, color:"var(--text2)" }}>{p.ts}</span>
+              </div>
+              <div style={{ fontSize:11.5, color:"var(--text2)", paddingLeft:14, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.ultimo}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Col 2: Chat Window ── */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
+        {selChat ? <>
+          {/* Chat header */}
+          <div style={{ padding:"12px 20px", borderBottom:"1px solid var(--border)", background:"var(--bg2)", display:"flex", alignItems:"center", gap:14, flexShrink:0 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:"var(--blue-dim)", color:"var(--blue)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:15 }}>{selChat.nombre[0]}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:700, fontSize:14 }}>{selChat.nombre}</div>
+              <div style={{ fontSize:11.5, color:"var(--text2)" }}>{selChat.vehiculo} · {selChat.tel}</div>
+            </div>
+            <StatusPill status={selChat.status}/>
+            {/* Bot toggle */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)" }}>
+              <Ico name={botOn?"zap":"pause"} size={13} style={{ color:botOn?"var(--accent)":"var(--text2)" }}/>
+              <span style={{ fontSize:12, fontWeight:600, color:botOn?"var(--accent)":"var(--text2)" }}>Bot {botOn?"activo":"pausado"}</span>
+              <div onClick={() => setBotOn(b=>!b)}
+                style={{ width:36, height:20, borderRadius:10, background:botOn?"var(--accent)":"var(--border)", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+                <div style={{ position:"absolute", top:3, left:botOn?18:3, width:14, height:14, borderRadius:"50%", background:"white", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,.2)" }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex:1, overflowY:"auto", padding:"16px 20px", display:"flex", flexDirection:"column", gap:10 }}>
+            {(msgs[selChat.id]||[]).map((m, i) => {
+              if (m.from==="sistema") return (
+                <div key={i} style={{ textAlign:"center" }}>
+                  <span style={{ fontSize:11.5, color:"var(--red)", background:"var(--red-dim)", padding:"4px 12px", borderRadius:99, display:"inline-block" }}>{m.text}</span>
+                </div>
+              );
+              if (m.text==="__processing__") return (
+                <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+                  <div style={{ width:28, height:28, borderRadius:8, background:"oklch(22% 0.06 162)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Ico name="zap" size={13} style={{ color:"var(--accent)" }}/>
+                  </div>
+                  <div style={{ background:"oklch(22% 0.06 162)", border:"1px solid oklch(62% 0.17 162 / 0.25)", borderRadius:"0 10px 10px 10px", padding:"10px 14px" }}>
+                    <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+                      <span style={{ fontSize:12, color:"var(--accent)", fontWeight:500 }}>IA procesando</span>
+                      {[0,1,2].map(k=>(
+                        <span key={k} style={{ width:5, height:5, borderRadius:"50%", background:"var(--accent)", display:"inline-block", animation:`pulse${k} 1.2s ease-in-out ${k*0.2}s infinite` }}/>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+              const isMe = m.from==="admin";
+              const isBot = m.from==="bot";
+              return (
+                <div key={i} style={{ display:"flex", gap:10, flexDirection:isMe?"row-reverse":"row", alignItems:"flex-end" }}>
+                  {!isMe && (
+                    <div style={{ width:28, height:28, borderRadius:8, background:isBot?"oklch(22% 0.06 162)":"var(--blue-dim)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontWeight:700, fontSize:11, color:isBot?"var(--accent)":"var(--blue)" }}>
+                      {isBot ? <Ico name="zap" size={13} style={{ color:"var(--accent)" }}/> : selChat.nombre[0]}
+                    </div>
+                  )}
+                  <div style={{ maxWidth:"68%" }}>
+                    <div style={{ background:isMe?"var(--accent)":isBot?"oklch(22% 0.06 162)":"var(--bg)", border:`1px solid ${isMe?"transparent":isBot?"oklch(62% 0.17 162 / 0.2)":"var(--border)"}`, borderRadius:isMe?"10px 0 10px 10px":"0 10px 10px 10px", padding:"9px 13px", fontSize:13.5, color:isMe?"white":isBot?"var(--accent)":"var(--text)" }}>
+                      {m.text}
+                    </div>
+                    <div style={{ fontSize:10.5, color:"var(--text2)", marginTop:3, textAlign:isMe?"right":"left" }}>{m.ts}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatEndRef}/>
+          </div>
+
+          {/* Input */}
+          <div style={{ padding:"12px 16px", borderTop:"1px solid var(--border)", background:"var(--bg2)", display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+            {botOn && (
+              <div style={{ padding:"6px 12px", borderRadius:8, background:"var(--accent-dim)", fontSize:12, color:"var(--accent)", fontWeight:500, display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                <Ico name="zap" size={13}/>
+                Bot activo — el bot responderá automáticamente
+              </div>
+            )}
+            {!botOn && <>
+              <input value={inputMsg} onChange={e=>setInputMsg(e.target.value)}
+                onKeyDown={e => e.key==="Enter" && sendMsg()}
+                placeholder="Escribe un mensaje manual..."
+                style={{ flex:1, padding:"9px 14px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", color:"var(--text)", fontFamily:"inherit", fontSize:13, outline:"none" }}/>
+              <button onClick={sendMsg} style={{ width:38, height:38, borderRadius:8, background:"var(--accent)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"white", flexShrink:0 }}>
+                <Ico name="send" size={15}/>
+              </button>
+            </>}
+          </div>
+        </> : (
+          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--text2)", fontSize:14 }}>Selecciona una conversación</div>
+        )}
+      </div>
+
+      {/* ── Col 3: Actions Panel ── */}
+      <div style={{ width:280, borderLeft:"1px solid var(--border)", background:"var(--bg2)", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
+        <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", fontWeight:700, fontSize:13 }}>Acciones rápidas</div>
+
+        {/* Cotizaciones */}
+        {quote ? (
+          <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"var(--text2)", letterSpacing:0.5, marginBottom:10 }}>COTIZACIÓN ACTIVA</div>
+            <div style={{ fontSize:12.5, color:"var(--text)", fontWeight:600, marginBottom:12, lineHeight:1.4 }}>{quote.item}</div>
+
+            {/* Fan-out status */}
+            {allWaiting && (
+              <div style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 12px", borderRadius:8, background:"var(--amber-dim)", marginBottom:10, fontSize:12, color:"var(--amber)", fontWeight:500 }}>
+                <Ico name="clock" size={13} style={{ color:"var(--amber)" }}/>
+                Esperando respuestas ({quote.proveedores.length} proveedores)
+              </div>
+            )}
+
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              {quote.proveedores.map((p,i) => (
+                <div key={i} style={{ padding:"10px 12px", borderRadius:8, border:`1px solid ${p.seleccionado?"var(--accent)":p.precio?"var(--border)":"var(--border)"}`, background:p.seleccionado?"var(--accent-dim)":"var(--bg)", position:"relative" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>{p.nombre}</span>
+                    {p.precio ? (
+                      <span style={{ fontSize:13.5, fontWeight:800, color:p.seleccionado?"var(--accent)":"var(--text)" }}>${p.precio.toLocaleString()}</span>
+                    ) : (
+                      <span style={{ fontSize:11.5, color:"var(--text2)" }}>esperando…</span>
+                    )}
+                  </div>
+                  {p.seleccionado && p.precio && (
+                    <div style={{ fontSize:10.5, color:"var(--accent)", marginTop:4, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+                      <Ico name="check" size={11} style={{ color:"var(--accent)" }}/> Seleccionado · precio más bajo
+                    </div>
+                  )}
+                  {!p.precio && (
+                    <div style={{ marginTop:4 }}>
+                      <div style={{ height:3, borderRadius:2, background:"var(--border)", overflow:"hidden" }}>
+                        <div style={{ width:"40%", height:"100%", background:"var(--amber)", borderRadius:2, animation:"scan 1.5s ease-in-out infinite" }}/>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {finalPrice && (
+              <div style={{ marginTop:14, padding:"12px 14px", borderRadius:8, background:"var(--accent-dim)", border:"1px solid oklch(62% 0.17 162 / 0.3)" }}>
+                <div style={{ fontSize:11, color:"var(--accent)", fontWeight:700, marginBottom:4 }}>PRECIO FINAL AL CLIENTE</div>
+                <div style={{ fontSize:22, fontWeight:800, color:"var(--accent)" }}>${finalPrice.toLocaleString()}</div>
+                <div style={{ fontSize:11, color:"var(--text2)", marginTop:3 }}>Incluye {Math.round(quote.margen*100)}% margen · base ${bestPrice.toLocaleString()}</div>
+                <button style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:7, background:"var(--accent)", color:"white", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:12.5, fontWeight:600 }}>
+                  Enviar precio al cliente
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ padding:"16px", borderBottom:"1px solid var(--border)" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"var(--text2)", letterSpacing:0.5, marginBottom:8 }}>COTIZACIÓN ACTIVA</div>
+            <div style={{ fontSize:12.5, color:"var(--text2)" }}>Sin cotización activa para esta conversación.</div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)" }}>
+          <div style={{ fontSize:11, fontWeight:700, color:"var(--text2)", letterSpacing:0.5, marginBottom:10 }}>DOCUMENTOS</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+            {[["Generar Boleta","invoice"],["Generar Factura","copy"],["Reenviar cotización","send"]].map(([label, icon]) => (
+              <button key={label} style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", cursor:"pointer", fontFamily:"inherit", fontSize:12.5, color:"var(--text)", fontWeight:500 }}
+                onMouseEnter={e => e.currentTarget.style.background="var(--border)"}
+                onMouseLeave={e => e.currentTarget.style.background="var(--bg)"}
+              >
+                <Ico name={icon} size={14} style={{ color:"var(--text2)" }}/>{label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Session info */}
+        {selChat && (
+          <div style={{ padding:"14px 16px" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"var(--text2)", letterSpacing:0.5, marginBottom:10 }}>SESIÓN</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {[["ID sesión", selChat.id.toUpperCase()],["Vehículo",selChat.vehiculo],["Teléfono",selChat.tel],["Estado",STATUS_LABEL[selChat.status]?.label||selChat.status]].map(([k,v]) => (
+                <div key={k} style={{ display:"flex", justifyContent:"space-between" }}>
+                  <span style={{ fontSize:11.5, color:"var(--text2)" }}>{k}</span>
+                  <span style={{ fontSize:11.5, fontWeight:600, color:"var(--text)", maxWidth:140, textAlign:"right" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Config ─────────────────────────────────────────────────
+function ConfigView() {
+  const [margin, setMargin] = useState(28);
+  return (
+    <div style={{ padding:28, flex:1, overflowY:"auto", maxWidth:600 }}>
+      <Card style={{ padding:24, marginBottom:16 }}>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:16 }}>Margen global por defecto</div>
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <input type="range" min={5} max={60} value={margin} onChange={e=>setMargin(+e.target.value)} style={{ flex:1, accentColor:"var(--accent)" }}/>
+          <span style={{ fontSize:22, fontWeight:800, color:"var(--accent)", minWidth:50 }}>{margin}%</span>
+        </div>
+        <div style={{ fontSize:12, color:"var(--text2)", marginTop:8 }}>Se aplica como base. Puedes ajustar por proveedor o producto.</div>
+      </Card>
+      <Card style={{ padding:24, marginBottom:16 }}>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:16 }}>WhatsApp API</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {[["Phone Number ID","284719842347281"],["API Token","••••••••••••••••••••"],["Webhook URL","https://web-repuestos.cl/webhook"]].map(([l,v]) => (
+            <div key={l}>
+              <label style={{ fontSize:12, fontWeight:600, color:"var(--text2)", display:"block", marginBottom:5 }}>{l}</label>
+              <input defaultValue={v} style={{ width:"100%", padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg)", color:"var(--text)", fontFamily:"monospace", fontSize:12 }}/>
+            </div>
+          ))}
+          <button style={{ alignSelf:"flex-start", padding:"9px 18px", borderRadius:8, background:"var(--accent)", color:"white", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:600 }}>Guardar configuración</button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  dashboard: ["Dashboard", "Hoy, 24 de Abril 2026"],
+  proveedores: ["Proveedores", "Gestiona tus proveedores de repuestos"],
+  clientes: ["Clientes", "Historial y datos de clientes"],
+  ventas: ["Ventas / Cotizaciones", "Seguimiento de pedidos y márgenes"],
+  ai: ["Log de IA · WhatsApp", "Conversaciones en tiempo real"],
+  inbox: ["Inbox CRM", "Omnichannel — Clientes & Proveedores"],
+  config: ["Configuración", "Ajustes del sistema"],
+};
+
+function App() {
+  const [active, setActive] = useState("dashboard");
+  const [collapsed, setCollapsed] = useState(false);
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  }, [dark]);
+
+  const [title, subtitle] = PAGE_TITLES[active] || ["—",""];
+
+  return (
+    <>
+      <Sidebar active={active} setActive={setActive} collapsed={collapsed} setCollapsed={setCollapsed} dark={dark} setDark={setDark}/>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <Topbar title={title} subtitle={subtitle}/>
+        <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+          {active==="dashboard" && <Dashboard/>}
+          {active==="proveedores" && <ProveedoresView/>}
+          {active==="clientes" && <ClientesView/>}
+          {active==="ventas" && <VentasView/>}
+          {active==="ai" && <AILogView/>}
+          {active==="inbox" && <InboxView/>}
+          {active==="config" && <ConfigView/>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
