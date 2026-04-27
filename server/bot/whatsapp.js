@@ -822,9 +822,15 @@ function initialize() { waClient.initialize(); }
 function getStatus()   { return { status: botStatus, qrDataURL: lastQRDataURL }; }
 
 async function sendMessage(phoneOrChatId, text) {
+  if (botStatus !== 'connected') throw new Error(`Bot no conectado (estado: ${botStatus})`);
   const chatId = buildChatId(phoneOrChatId);
   if (!chatId) throw new Error('chatId inválido');
-  const sentMsg = await waClient.sendMessage(chatId, text);
+
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout: el bot tardó más de 15s en enviar')), 15000)
+  );
+  const sentMsg = await Promise.race([waClient.sendMessage(chatId, text), timeout]);
+
   // Cachear LID en DB por si el destinatario usa dispositivo vinculado
   try {
     const chat = await sentMsg.getChat();
